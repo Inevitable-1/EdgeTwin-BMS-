@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { Battery, Thermometer, AlertTriangle, TrendingUp, Activity, Zap, Clock, MapPin } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { Battery, Thermometer, AlertTriangle, TrendingUp, Activity, Zap, MapPin } from 'lucide-react';
 import { api } from '../services/api';
+import TelemetryChart from '../components/Telemetry/TelemetryChart';
 
 interface BatteryHealthItem {
   id?: string;
@@ -25,11 +26,6 @@ interface AlertStats {
   warning: number;
   info: number;
   total: number;
-}
-
-interface VoltageDataPoint {
-  time: string;
-  voltage: number;
 }
 
 function useAnimatedCounter(target: number, duration = 1000): number {
@@ -56,20 +52,6 @@ function useAnimatedCounter(target: number, duration = 1000): number {
   }, [target, duration]);
 
   return value;
-}
-
-function generateVoltageData(): VoltageDataPoint[] {
-  const data: VoltageDataPoint[] = [];
-  let voltage = 355;
-  for (let i = 0; i < 24; i++) {
-    const change = (Math.sin(i * 0.5) * 3) + (Math.random() - 0.5) * 4;
-    voltage = Math.max(340, Math.min(380, voltage + change));
-    data.push({
-      time: `${String(i).padStart(2, '0')}:00`,
-      voltage: Math.round(voltage * 10) / 10,
-    });
-  }
-  return data;
 }
 
 function getSoHColor(soh: number): string {
@@ -193,8 +175,6 @@ export default function DashboardPage() {
       color: '#ef4444',
     },
   ];
-
-  const voltageData = generateVoltageData();
 
   const [sortedBatteries, setSortedBatteries] = useState<BatteryHealthItem[]>([]);
 
@@ -327,67 +307,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Voltage Trend */}
-        <div className="bg-dark-900 border border-dark-700 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary-500" />
-              Voltage Trend (24h)
-            </h3>
-            <span className="text-dark-400 text-xs flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              Live
-            </span>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={voltageData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="voltageGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis
-                  dataKey="time"
-                  stroke="#64748b"
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="#64748b"
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                  domain={[335, 385]}
-                  tickFormatter={(v: number) => `${v}V`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #334155',
-                    borderRadius: '8px',
-                    color: '#fff',
-                  }}
-                  labelStyle={{ color: '#94a3b8' }}
-                  formatter={(value: number) => [`${value.toFixed(1)}V`, 'Voltage']}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="voltage"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  fill="url(#voltageGradient)"
-                  dot={false}
-                  activeDot={{ r: 5, fill: '#3b82f6', stroke: '#0f172a', strokeWidth: 2 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      <div className="space-y-6">
+        {/* Live Telemetry Chart */}
+        <TelemetryChart batteryId="BAT-001" batteryName="Tata Nexon EV Battery Pack" />
 
         {/* Health Distribution */}
         <div className="bg-dark-900 border border-dark-700 rounded-xl p-5">
