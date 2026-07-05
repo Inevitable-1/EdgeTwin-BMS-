@@ -1,0 +1,54 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#3b82f6', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#3b82f6', 'lineColor': '#60a5fa', 'secondaryColor': '#1e3a5f', 'tertiaryColor': '#1a1a2e'}}}%%
+
+graph TB
+    subgraph SENSOR_LAYER["🔌 SENSOR LAYER"]
+        S1["Voltage Sensor<br/>ADS1115<br/>100Hz"]
+        S2["Current Sensor<br/>INA219<br/>100Hz"]
+        S3["Temperature Sensor<br/>NTC 10kΩ<br/>10Hz"]
+        S4["IMU Sensor<br/>MPU6050<br/>100Hz"]
+    end
+
+    subgraph EDGE_LAYER["⚡ EDGE LAYER (ESP32)"]
+        E1["Sensor Interface<br/>ADC / I2C"]
+        E2["Feature Extraction<br/>16 Features"]
+        E3["TFLite Inference<br/>8-12ms"]
+        E4["MQTT Publisher<br/>TLS Encrypted"]
+    end
+
+    subgraph GATEWAY_LAYER["🖥️ GATEWAY LAYER (RPi)"]
+        G1["Mosquitto<br/>MQTT Broker"]
+        G2["FastAPI<br/>Backend"]
+        G3["PostgreSQL<br/>+ TimescaleDB"]
+        G4["ML Service<br/>SHAP / LIME"]
+    end
+
+    subgraph APPLICATION_LAYER["🌐 APPLICATION LAYER"]
+        A1["React<br/>Dashboard"]
+        A2["Three.js<br/>Digital Twin"]
+        A3["Battery<br/>Passport"]
+        A4["Fleet<br/>Overview"]
+    end
+
+    S1 --> E1
+    S2 --> E1
+    S3 --> E1
+    S4 --> E1
+    
+    E1 --> E2
+    E2 --> E3
+    E3 --> E4
+    
+    E4 -->|MQTT TLS| G1
+    G1 --> G2
+    G2 --> G3
+    G2 --> G4
+    
+    G2 -->|WebSocket| A1
+    G2 -->|WebSocket| A2
+    G2 -->|REST API| A3
+    G2 -->|REST API| A4
+
+    style SENSOR_LAYER fill:#1e3a5f,stroke:#3b82f6,stroke-width:2px
+    style EDGE_LAYER fill:#2d1b4e,stroke:#8b5cf6,stroke-width:2px
+    style GATEWAY_LAYER fill:#1a4731,stroke:#10b981,stroke-width:2px
+    style APPLICATION_LAYER fill:#4a1d1d,stroke:#ef4444,stroke-width:2px

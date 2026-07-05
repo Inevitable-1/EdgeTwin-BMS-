@@ -1,0 +1,48 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#3b82f6', 'primaryTextColor': '#ffffff'}}}%%
+
+graph TB
+    subgraph PHYSICAL["🔧 PHYSICAL LAYER"]
+        P1["Battery Pack<br/>40 Cells (5S8P)"]
+        P2["Sensors<br/>Voltage, Current, Temp"]
+        P3["ESP32 MCU<br/>Edge Inference"]
+    end
+
+    subgraph DIGITAL["💻 DIGITAL LAYER"]
+        D1["Data Ingestion<br/>MQTT Subscriber"]
+        D2["State Synchronizer<br/>Real-time Updates"]
+        D3["Physics Engine<br/>Thermodynamic Model"]
+        D4["3D Renderer<br/>Three.js"]
+    end
+
+    subgraph PRESENTATION["📱 PRESENTATION LAYER"]
+        PR1["3D Pack View<br/>Cell-level Monitoring"]
+        PR2["Thermal Heatmap<br/>Temperature Distribution"]
+        PR3["Failure Simulation<br/>Thermal Propagation"]
+        PR4["Risk Dashboard<br/>Color-coded Alerts"]
+    end
+
+    P1 --> P2
+    P2 --> P3
+    P3 -->|MQTT| D1
+    D1 --> D2
+    D2 --> D3
+    D3 --> D4
+    D4 --> PR1
+    D4 --> PR2
+    D4 --> PR3
+    D4 --> PR4
+
+    subgraph SYNC["🔄 SYNCHRONIZATION"]
+        S1["Physical State"]
+        S2["Digital State"]
+        S3["Sync Rate: 30Hz"]
+        S4["Latency: <50ms"]
+    end
+
+    S1 <-->|Real-time| S2
+    S3 --- S4
+
+    style PHYSICAL fill:#1e3a5f,stroke:#3b82f6,stroke-width:2px
+    style DIGITAL fill:#2d1b4e,stroke:#8b5cf6,stroke-width:2px
+    style PRESENTATION fill:#1a4731,stroke:#10b981,stroke-width:2px
+    style SYNC fill:#4a1d1d,stroke:#ef4444,stroke-width:2px

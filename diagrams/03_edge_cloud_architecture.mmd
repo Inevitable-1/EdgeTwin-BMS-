@@ -1,0 +1,47 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#3b82f6', 'primaryTextColor': '#ffffff'}}}%%
+
+graph LR
+    subgraph VEHICLE["🚗 VEHICLE (Edge)"]
+        V1["ESP32 MCU"]
+        V2["Sensors"]
+        V3["TFLite Model"]
+        V4["Local SQLite"]
+    end
+
+    subgraph GATEWAY["🏢 GATEWAY (RPi)"]
+        G1["MQTT Broker"]
+        G2["FastAPI"]
+        G3["PostgreSQL"]
+        G4["Redis Cache"]
+    end
+
+    subgraph CLOUD["☁️ CLOUD (Optional)"]
+        C1["Fleet Analytics"]
+        C2["Model Training"]
+        C3["Long-term Storage"]
+    end
+
+    V2 --> V1
+    V1 --> V3
+    V3 --> V4
+    V1 -->|MQTT TLS| G1
+    G1 --> G2
+    G2 --> G3
+    G2 --> G4
+    
+    G2 -->|HTTPS| C1
+    G2 -->|Batch| C2
+    G3 -->|Archive| C3
+
+    subgraph OFFLINE["OFFLINE MODE"]
+        O1["✅ Sensor Reading"]
+        O2["✅ Edge Inference"]
+        O3["✅ Local Dashboard"]
+        O4["✅ Digital Twin"]
+        O5["✅ Battery Passport"]
+    end
+
+    style VEHICLE fill:#2d1b4e,stroke:#8b5cf6,stroke-width:2px
+    style GATEWAY fill:#1a4731,stroke:#10b981,stroke-width:2px
+    style CLOUD fill:#1e3a5f,stroke:#3b82f6,stroke-width:2px,stroke-dasharray: 5 5
+    style OFFLINE fill:#4a1d1d,stroke:#ef4444,stroke-width:2px

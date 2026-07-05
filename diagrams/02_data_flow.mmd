@@ -1,0 +1,35 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#3b82f6', 'primaryTextColor': '#ffffff'}}}%%
+
+sequenceDiagram
+    participant Sensor as 🔌 Sensors
+    participant ESP32 as ⚡ ESP32
+    participant MQTT as 📡 MQTT Broker
+    participant API as 🖥️ FastAPI
+    participant DB as 🗄️ PostgreSQL
+    participant SHAP as 🧠 SHAP Service
+    participant WS as 🌐 WebSocket
+    participant UI as 📱 Dashboard
+
+    Sensor->>ESP32: Read voltage, current, temp (100Hz)
+    
+    ESP32->>ESP32: Feature Extraction (3ms)
+    ESP32->>ESP32: TFLite Inference (8-12ms)
+    Note right of ESP32: SOH, SOC, Thermal,<br/>Anomaly, RUL
+    
+    ESP32->>MQTT: Publish telemetry (TLS)
+    Note right of ESP32: Topic: edgetwin/{id}/data
+    
+    MQTT->>API: Subscribe & receive
+    API->>DB: Store telemetry
+    API->>SHAP: Generate explanation
+    SHAP->>API: Return SHAP values
+    
+    API->>WS: Broadcast update
+    WS->>UI: Real-time dashboard update
+    
+    Note right of UI: Total latency: 33ms
+    
+    UI->>API: GET /predictions/{id}/soh
+    API->>DB: Query latest prediction
+    DB->>API: Return prediction
+    API->>UI: SOH = 87.3%

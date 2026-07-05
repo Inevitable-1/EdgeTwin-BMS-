@@ -1,0 +1,188 @@
+# =============================================================================
+# EdgeTwin-BMS+ Docker Compose Configuration
+# =============================================================================
+
+version: '3.9'
+
+services:
+  # -----------------------------------------------------------------------------
+  # PostgreSQL with TimescaleDB
+  # -----------------------------------------------------------------------------
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: edgetwin-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-edgetwin_bms}
+      POSTGRES_USER: ${POSTGRES_USER:-edgetwin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-edgetwin_secret_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-edgetwin} -d ${POSTGRES_DB:-edgetwin_bms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edgetwin-network
+
+  # -----------------------------------------------------------------------------
+  # Redis
+  # -----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: edgetwin-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edgetwin-network
+
+  # -----------------------------------------------------------------------------
+  # Mosquitto MQTT Broker
+  # -----------------------------------------------------------------------------
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: edgetwin-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./docker/mosquitto/config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck", "-W", "3"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edgetwin-network
+
+  # -----------------------------------------------------------------------------
+  # Backend (FastAPI)
+  # -----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile
+    container_name: edgetwin-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://edgetwin:edgetwin_secret_password@postgres:5432/edgetwin_bms
+      - REDIS_URL=redis://redis:6379/0
+      - MQTT_BROKER=mosquitto
+    volumes:
+      - ./backend:/app
+      - backend_logs:/app/logs
+      - ai_models:/app/ai/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - edgetwin-network
+
+  # -----------------------------------------------------------------------------
+  # Frontend (React)
+  # -----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend/Dockerfile
+    container_name: edgetwin-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - edgetwin-network
+
+  # -----------------------------------------------------------------------------
+  # Nginx Reverse Proxy
+  # -----------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: edgetwin-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - edgetwin-network
+
+  # -----------------------------------------------------------------------------
+  # Gateway (MQTT to REST bridge)
+  # -----------------------------------------------------------------------------
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: ../docker/gateway/Dockerfile
+    container_name: edgetwin-gateway
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      - MQTT_BROKER=mosquitto
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - edgetwin-network
+
+# -----------------------------------------------------------------------------
+# Volumes
+# -----------------------------------------------------------------------------
+volumes:
+  postgres_data:
+  redis_data:
+  mosquitto_data:
+  mosquitto_log:
+  backend_logs:
+  ai_models:
+
+# -----------------------------------------------------------------------------
+# Networks
+# -----------------------------------------------------------------------------
+networks:
+  edgetwin-network:
+    driver: bridge
