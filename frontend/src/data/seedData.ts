@@ -147,6 +147,27 @@ export const USERS: User[] = [
     role: 'viewer',
     name: 'Amit Patel',
   },
+  {
+    id: 'USR-004',
+    email: 'fleetmanager@edgetwin.ai',
+    password: 'fleet123',
+    role: 'engineer',
+    name: 'Vikram Singh',
+  },
+  {
+    id: 'USR-005',
+    email: 'maintenance@edgetwin.ai',
+    password: 'maint123',
+    role: 'engineer',
+    name: 'Suresh Reddy',
+  },
+  {
+    id: 'USR-006',
+    email: 'guest@edgetwin.ai',
+    password: 'guest123',
+    role: 'viewer',
+    name: 'Guest User',
+  },
 ];
 
 // ─── MANUFACTURERS ───────────────────────────────────────────────────────────

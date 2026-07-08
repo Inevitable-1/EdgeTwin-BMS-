@@ -75,8 +75,8 @@ services:
   # -----------------------------------------------------------------------------
   backend:
     build:
-      context: ./backend
-      dockerfile: ../docker/backend/Dockerfile
+      context: .
+      dockerfile: docker/backend/Dockerfile
     container_name: edgetwin-backend
     restart: unless-stopped
     ports:
@@ -111,8 +111,8 @@ services:
   # -----------------------------------------------------------------------------
   frontend:
     build:
-      context: ./frontend
-      dockerfile: ../docker/frontend/Dockerfile
+      context: .
+      dockerfile: docker/frontend/Dockerfile
     container_name: edgetwin-frontend
     restart: unless-stopped
     ports:
@@ -150,8 +150,8 @@ services:
   # -----------------------------------------------------------------------------
   gateway:
     build:
-      context: ./gateway
-      dockerfile: ../docker/gateway/Dockerfile
+      context: .
+      dockerfile: docker/gateway/Dockerfile
     container_name: edgetwin-gateway
     restart: unless-stopped
     ports:

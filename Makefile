@@ -154,6 +154,17 @@ db-upgrade:
 db-downgrade:
 	cd backend && alembic downgrade -1
 
+# ==================== Database Seed Commands ====================
+
+db-seed:
+	cd backend && python -m scripts.seed_data
+
+db-reset:
+	cd backend && alembic downgrade base && alembic upgrade head && python -m scripts.seed_data
+
+db-init:
+	cd backend && alembic upgrade head && python -m scripts.seed_data
+
 # ==================== Utility Commands ====================
 
 clean:

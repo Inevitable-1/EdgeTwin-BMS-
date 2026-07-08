@@ -98,23 +98,36 @@ async def get_telemetry_stats(
             detail="Battery not found",
         )
     
-    # Get statistics using the database function
-    stats_query = """
-        SELECT * FROM get_telemetry_stats(:battery_id, :hours)
-    """
-    result = await db.execute(stats_query, {"battery_id": str(battery_id), "hours": hours})
-    stats = result.mappings().first()
+    # Compute statistics using SQLAlchemy aggregation
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
+    
+    stats_query = select(
+        func.avg(Telemetry.voltage).label("avg_voltage"),
+        func.max(Telemetry.voltage).label("max_voltage"),
+        func.min(Telemetry.voltage).label("min_voltage"),
+        func.avg(Telemetry.current).label("avg_current"),
+        func.max(Telemetry.current).label("max_current"),
+        func.avg(Telemetry.temperature).label("avg_temperature"),
+        func.max(Telemetry.temperature).label("max_temperature"),
+        func.avg(Telemetry.soc).label("avg_soc"),
+        func.count(Telemetry.id).label("data_points"),
+    ).where(
+        Telemetry.battery_id == battery_id,
+        Telemetry.timestamp >= cutoff,
+    )
+    result = await db.execute(stats_query)
+    stats = result.one()
     
     return TelemetryStats(
-        avg_voltage=float(stats["avg_voltage"]) if stats["avg_voltage"] else None,
-        max_voltage=float(stats["max_voltage"]) if stats["max_voltage"] else None,
-        min_voltage=float(stats["min_voltage"]) if stats["min_voltage"] else None,
-        avg_current=float(stats["avg_current"]) if stats["avg_current"] else None,
-        max_current=float(stats["max_current"]) if stats["max_current"] else None,
-        avg_temperature=float(stats["avg_temperature"]) if stats["avg_temperature"] else None,
-        max_temperature=float(stats["max_temperature"]) if stats["max_temperature"] else None,
-        avg_soc=float(stats["avg_soc"]) if stats["avg_soc"] else None,
-        data_points=stats["data_points"],
+        avg_voltage=float(stats.avg_voltage) if stats.avg_voltage else None,
+        max_voltage=float(stats.max_voltage) if stats.max_voltage else None,
+        min_voltage=float(stats.min_voltage) if stats.min_voltage else None,
+        avg_current=float(stats.avg_current) if stats.avg_current else None,
+        max_current=float(stats.max_current) if stats.max_current else None,
+        avg_temperature=float(stats.avg_temperature) if stats.avg_temperature else None,
+        max_temperature=float(stats.max_temperature) if stats.max_temperature else None,
+        avg_soc=float(stats.avg_soc) if stats.avg_soc else None,
+        data_points=stats.data_points,
     )
 
 

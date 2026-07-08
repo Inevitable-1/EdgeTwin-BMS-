@@ -5,10 +5,16 @@ import Layout from './components/Layout/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import FleetPage from './pages/FleetPage';
+import FleetDetailsPage from './pages/FleetDetailsPage';
+import VehicleDetailsPage from './pages/VehicleDetailsPage';
 import BatteryPage from './pages/BatteryPage';
 import AlertsPage from './pages/AlertsPage';
-import PassportPage from './pages/PassportPage';
 import SettingsPage from './pages/SettingsPage';
+import DigitalTwinPage from './pages/DigitalTwinPage';
+import AdminPage from './pages/AdminPage';
+import ReportsPage from './pages/ReportsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import RecommendationsPage from './pages/RecommendationsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,11 +47,16 @@ function App() {
           >
             <Route index element={<DashboardPage />} />
             <Route path="fleet" element={<FleetPage />} />
+            <Route path="fleet/:id" element={<FleetDetailsPage />} />
+            <Route path="fleet/:fleetId/vehicle/:vehicleId" element={<VehicleDetailsPage />} />
             <Route path="battery/:id" element={<BatteryPage />} />
             <Route path="alerts" element={<AlertsPage />} />
-            <Route path="passport" element={<PassportPage />} />
-            <Route path="passport/:id" element={<PassportPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="digital-twin" element={<DigitalTwinPage />} />
+            <Route path="admin" element={<AdminPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="recommendations" element={<RecommendationsPage />} />
           </Route>
         </Routes>
       </Router>

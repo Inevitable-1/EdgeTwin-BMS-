@@ -100,19 +100,71 @@ async def list_battery_health(
     """
     List all batteries with health overview.
     """
-    query = "SELECT * FROM v_battery_health WHERE 1=1"
-    params = {}
+    query = select(
+        Battery,
+        Telemetry.voltage,
+        Telemetry.current,
+        Telemetry.temperature,
+        Telemetry.soc,
+        Telemetry.soh,
+    ).outerjoin(
+        Telemetry,
+        Battery.id == Telemetry.battery_id,
+    ).distinct(Battery.id).order_by(Battery.id, Telemetry.timestamp.desc())
     
     if fleet_id:
-        query += " AND fleet_id = :fleet_id"
-        params["fleet_id"] = str(fleet_id)
+        query = query.where(Battery.fleet_id == fleet_id)
     
     if status_filter:
-        query += " AND status = :status"
-        params["status"] = status_filter
+        query = query.where(Battery.status == status_filter)
     
-    result = await db.execute(query, params)
-    batteries = result.mappings().all()
+    result = await db.execute(query)
+    rows = result.all()
+    
+    from app.models.alert import Alert
+    
+    batteries = []
+    for row in rows:
+        battery = row.Battery
+        health_score = None
+        if row.soh and row.soc and row.temperature and row.voltage:
+            soh_score = float(row.soh) / 100
+            soc_score = float(row.soc) / 100
+            temp_score = max(0, 1 - abs(float(row.temperature) - 25) / 40)
+            volt_score = min(1, float(row.voltage) / 400)
+            health_score = round((soh_score * 0.4 + soc_score * 0.2 + temp_score * 0.2 + volt_score * 0.2) * 100, 1)
+        
+        alert_count = await db.execute(
+            select(func.count(Alert.id)).where(
+                Alert.battery_id == battery.id, Alert.status == "active"
+            )
+        )
+        active_alerts = alert_count.scalar() or 0
+        
+        fleet_name = None
+        if battery.fleet:
+            fleet_name = battery.fleet.name
+        
+        batteries.append(BatteryHealth(
+            id=battery.id,
+            battery_id=battery.battery_id,
+            fleet_id=battery.fleet_id,
+            fleet_name=fleet_name,
+            status=battery.status,
+            manufacturer=battery.manufacturer,
+            model=battery.model,
+            chemistry=battery.chemistry,
+            capacity_kwh=float(battery.capacity_kwh),
+            current_soh=float(row.soh) if row.soh else None,
+            current_soc=float(row.soc) if row.soc else None,
+            current_voltage=float(row.voltage) if row.voltage else None,
+            current_current=float(row.current) if row.current else None,
+            current_temperature=float(row.temperature) if row.temperature else None,
+            active_alerts=active_alerts,
+            total_cycles=None,
+            created_at=battery.created_at,
+            updated_at=battery.updated_at,
+        ))
     
     return batteries
 
@@ -169,19 +221,11 @@ async def get_battery_with_telemetry(
     # Calculate health score
     health_score = None
     if telemetry and telemetry.soh and telemetry.soc and telemetry.temperature and telemetry.voltage:
-        health_score_query = """
-            SELECT calculate_health_score(:soh, :soc, :temperature, :voltage)
-        """
-        health_result = await db.execute(
-            health_score_query,
-            {
-                "soh": float(telemetry.soh),
-                "soc": float(telemetry.soc),
-                "temperature": float(telemetry.temperature),
-                "voltage": float(telemetry.voltage),
-            },
-        )
-        health_score = health_result.scalar()
+        soh_score = float(telemetry.soh) / 100
+        soc_score = float(telemetry.soc) / 100
+        temp_score = max(0, 1 - abs(float(telemetry.temperature) - 25) / 40)
+        volt_score = min(1, float(telemetry.voltage) / 400)
+        health_score = round((soh_score * 0.4 + soc_score * 0.2 + temp_score * 0.2 + volt_score * 0.2) * 100, 1)
     
     return BatteryWithTelemetry(
         **battery.__dict__,

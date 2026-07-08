@@ -4,8 +4,12 @@ import {
   Battery,
   Map,
   AlertTriangle,
-  FileText,
   Settings,
+  Monitor,
+  Shield,
+  BarChart3,
+  Lightbulb,
+  FileSpreadsheet,
   LogOut,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
@@ -13,9 +17,13 @@ import { useAuthStore } from '../../stores/authStore';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Fleet', href: '/fleet', icon: Map },
+  { name: 'Digital Twin', href: '/digital-twin', icon: Monitor },
   { name: 'Alerts', href: '/alerts', icon: AlertTriangle },
-  { name: 'Passports', href: '/passport', icon: FileText },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
+  { name: 'Reports', href: '/reports', icon: FileSpreadsheet },
   { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Admin', href: '/admin', icon: Shield },
 ];
 
 export default function Sidebar() {

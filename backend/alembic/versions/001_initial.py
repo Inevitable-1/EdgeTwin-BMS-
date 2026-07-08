@@ -394,7 +394,7 @@ def upgrade() -> None:
     
     # Create continuous aggregates
     op.execute("""
-        CREATE VIEW telemetry_hourly
+        CREATE MATERIALIZED VIEW telemetry_hourly
         WITH (timescaledb.continuous) AS
         SELECT 
             battery_id,
@@ -414,7 +414,7 @@ def upgrade() -> None:
     """)
     
     op.execute("""
-        CREATE VIEW telemetry_daily
+        CREATE MATERIALIZED VIEW telemetry_daily
         WITH (timescaledb.continuous) AS
         SELECT 
             battery_id,
@@ -461,9 +461,9 @@ def downgrade() -> None:
     op.execute("DROP TRIGGER IF EXISTS trigger_digital_twins_updated_at ON digital_twins")
     
     # Drop functions
-    op.execute("DROP FUNCTION IF EXISTS update_updated_at_column()")
-    op.execute("DROP FUNCTION IF EXISTS calculate_health_score(uuid)")
-    op.execute("DROP FUNCTION IF EXISTS get_telemetry_stats(uuid, integer)")
+    op.execute("DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE")
+    op.execute("DROP FUNCTION IF EXISTS calculate_health_score(decimal, decimal, decimal, decimal) CASCADE")
+    op.execute("DROP FUNCTION IF EXISTS get_telemetry_stats(uuid, integer) CASCADE")
     
     # Drop tables in reverse order
     op.drop_table('digital_twins')
