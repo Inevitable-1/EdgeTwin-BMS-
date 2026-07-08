@@ -23,6 +23,7 @@ import {
   Search,
   ChevronRight,
 } from 'lucide-react';
+import FleetMap from '../components/Fleet/FleetMap';
 import { api } from '../services/api';
 
 interface BatteryHealthItem {
@@ -47,29 +48,6 @@ interface FleetInfo {
   active_alerts: number;
 }
 
-const INDIA_CITIES: { city: string; lat: number; lng: number }[] = [
-  { city: 'Mumbai', lat: 19.076, lng: 72.8777 },
-  { city: 'Delhi', lat: 28.7041, lng: 77.1025 },
-  { city: 'Bangalore', lat: 12.9716, lng: 77.5946 },
-  { city: 'Chennai', lat: 13.0827, lng: 80.2707 },
-  { city: 'Hyderabad', lat: 17.385, lng: 78.4867 },
-  { city: 'Pune', lat: 18.5204, lng: 73.8567 },
-  { city: 'Kolkata', lat: 22.5726, lng: 88.3639 },
-  { city: 'Ahmedabad', lat: 23.0225, lng: 72.5714 },
-  { city: 'Jaipur', lat: 26.9124, lng: 75.7873 },
-  { city: 'Lucknow', lat: 26.8467, lng: 80.9462 },
-  { city: 'Chandigarh', lat: 30.7333, lng: 76.7794 },
-  { city: 'Bhopal', lat: 23.2599, lng: 77.4126 },
-  { city: 'Indore', lat: 22.7196, lng: 75.8577 },
-  { city: 'Nagpur', lat: 21.1458, lng: 79.0882 },
-  { city: 'Coimbatore', lat: 11.0168, lng: 76.9558 },
-  { city: 'Kochi', lat: 9.9312, lng: 76.2673 },
-  { city: 'Thiruvananthapuram', lat: 8.5241, lng: 76.9366 },
-  { city: 'Mysore', lat: 12.2958, lng: 76.6394 },
-  { city: 'Visakhapatnam', lat: 17.6868, lng: 83.2185 },
-  { city: 'Patna', lat: 25.6093, lng: 85.1376 },
-];
-
 const MANUFACTURER_COLORS: Record<string, string> = {
   'Tata Motors': '#3b82f6',
   Mahindra: '#ef4444',
@@ -81,19 +59,9 @@ const MANUFACTURER_COLORS: Record<string, string> = {
   AMO: '#f97316',
   Revolt: '#6366f1',
   Ultraviolette: '#06b6d4',
+  BYD: '#06b6d4',
+  'MG Motors': '#ec4899',
 };
-
-function latLngToMapXY(lat: number, lng: number): { x: number; y: number } {
-  const minLat = 6.5;
-  const maxLat = 37.5;
-  const minLng = 66.0;
-  const maxLng = 98.0;
-  const mapWidth = 500;
-  const mapHeight = 550;
-  const x = ((lng - minLng) / (maxLng - minLng)) * mapWidth;
-  const y = ((maxLat - lat) / (maxLat - minLat)) * mapHeight;
-  return { x, y };
-}
 
 function getSoHColor(soh: number): string {
   if (soh > 85) return '#22c55e';
@@ -212,6 +180,38 @@ export default function FleetPage() {
         avg_soh: 0,
         active_alerts: 0,
       },
+      'fleet-ather-ev': {
+        id: 'fleet-ather-ev',
+        name: 'Ather Energy Fleet',
+        description: 'Ather Energy electric two-wheeler fleet',
+        battery_count: 0,
+        avg_soh: 0,
+        active_alerts: 0,
+      },
+      'fleet-tvs-ev': {
+        id: 'fleet-tvs-ev',
+        name: 'TVS Electric Fleet',
+        description: 'TVS Motors electric vehicle fleet',
+        battery_count: 0,
+        avg_soh: 0,
+        active_alerts: 0,
+      },
+      'fleet-byd-ev': {
+        id: 'fleet-byd-ev',
+        name: 'BYD EV Fleet',
+        description: 'BYD electric vehicle fleet',
+        battery_count: 0,
+        avg_soh: 0,
+        active_alerts: 0,
+      },
+      'fleet-mg-ev': {
+        id: 'fleet-mg-ev',
+        name: 'MG EV Fleet',
+        description: 'MG Motors electric vehicle fleet',
+        battery_count: 0,
+        avg_soh: 0,
+        active_alerts: 0,
+      },
     };
 
     apiFleets.forEach((af: { id: string; name?: string; description?: string }) => {
@@ -272,6 +272,10 @@ export default function FleetPage() {
           'fleet-tata-ev': 'Tata Motors',
           'fleet-mahindra-ev': 'Mahindra',
           'fleet-ola-ev': 'Ola Electric',
+          'fleet-ather-ev': 'Ather Energy',
+          'fleet-tvs-ev': 'TVS',
+          'fleet-byd-ev': 'BYD',
+          'fleet-mg-ev': 'MG Motors',
         };
         if (mfrFleetMap[f.id] !== filterManufacturer) return false;
       }
@@ -387,121 +391,8 @@ export default function FleetPage() {
         ))}
       </div>
 
-      {/* Interactive Map Section */}
-      <div className="bg-dark-900 border border-dark-700 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white font-semibold flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-primary-500" />
-            Battery Location Distribution
-          </h3>
-          <span className="text-dark-400 text-xs">{batteries.length} batteries nationwide</span>
-        </div>
-
-        <div className="bg-dark-950 rounded-lg p-4 overflow-x-auto">
-          <svg viewBox="0 0 500 550" className="w-full max-w-2xl mx-auto" style={{ minHeight: '320px' }}>
-            <defs>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-                <feMerge>
-                  <feMergeNode in="coloredBlur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-
-            <path
-              d="M 170 20 C 160 30, 155 50, 160 70 C 165 85, 150 95, 145 110
-                 C 138 128, 140 140, 135 155 C 128 175, 120 185, 115 200
-                 C 108 218, 100 235, 105 250 C 108 262, 115 270, 120 280
-                 C 128 295, 125 310, 130 325 C 135 340, 145 350, 155 365
-                 C 162 378, 158 390, 165 405 C 172 420, 185 435, 200 445
-                 C 215 455, 235 460, 250 458 C 268 455, 285 445, 295 435
-                 C 308 422, 325 415, 338 405 C 350 395, 358 380, 370 365
-                 C 380 352, 388 340, 395 325 C 402 310, 410 295, 405 280
-                 C 400 265, 395 255, 390 240 C 385 225, 378 215, 372 200
-                 C 365 185, 358 175, 355 160 C 350 140, 355 125, 360 110
-                 C 365 95, 370 85, 365 70 C 360 55, 345 40, 330 30
-                 C 315 22, 300 18, 285 15 C 270 12, 255 15, 240 18
-                 C 225 22, 210 20, 195 22 C 185 24, 178 18, 170 20 Z"
-              fill="none"
-              stroke="#334155"
-              strokeWidth="2"
-              opacity="0.6"
-            />
-
-            <path
-              d="M 285 15 C 288 35, 290 55, 282 75 C 275 92, 270 100, 265 118
-                 C 258 140, 260 158, 255 178 C 250 195, 248 210, 245 228
-                 C 242 245, 238 258, 235 275 C 230 295, 228 312, 225 330
-                 C 222 348, 218 365, 215 382 C 212 400, 210 418, 208 435
-                 C 206 450, 210 460, 200 445 C 185 435, 172 420, 165 405
-                 C 158 390, 162 378, 155 365 C 145 350, 135 340, 130 325
-                 C 125 310, 128 295, 120 280 C 115 270, 108 262, 105 250
-                 C 100 235, 108 218, 115 200 C 120 185, 128 175, 135 155
-                 C 140 140, 138 128, 145 110 C 150 95, 165 85, 160 70
-                 C 155 50, 160 30, 170 20 C 178 18, 185 24, 195 22
-                 C 210 20, 225 22, 240 18 C 255 15, 270 12, 285 15 Z"
-              fill="#1e293b"
-              opacity="0.3"
-            />
-
-            {batteries.map((battery) => {
-              const lat = battery.lat || INDIA_CITIES.find((c) => c.city === battery.location)?.lat || 20;
-              const lng = battery.lng || INDIA_CITIES.find((c) => c.city === battery.location)?.lng || 78;
-              const { x, y } = latLngToMapXY(lat, lng);
-              const color = getSoHColor(
-                typeof battery.current_soh === 'number' ? battery.current_soh : 0
-              );
-              return (
-                <circle
-                  key={battery.battery_id}
-                  cx={x}
-                  cy={y}
-                  r={4}
-                  fill={color}
-                  opacity={0.85}
-                  filter="url(#glow)"
-                >
-                  <title>{`${battery.vehicle_name} (${battery.battery_id}) - SOH: ${battery.current_soh}%`}</title>
-                </circle>
-              );
-            })}
-
-            {INDIA_CITIES.slice(0, 8).map((city) => {
-              const { x, y } = latLngToMapXY(city.lat, city.lng);
-              return (
-                <g key={city.city}>
-                  <circle cx={x} cy={y} r={2} fill="#64748b" opacity={0.5} />
-                  <text
-                    x={x + 6}
-                    y={y + 3}
-                    fill="#64748b"
-                    fontSize="8"
-                    fontFamily="sans-serif"
-                  >
-                    {city.city}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
-        <div className="flex items-center justify-center gap-6 mt-4 text-xs text-dark-400">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-green-500" />
-            <span>SOH &gt; 85%</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-yellow-500" />
-            <span>SOH 70-85%</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-red-500" />
-            <span>SOH &lt; 70%</span>
-          </div>
-        </div>
-      </div>
+      {/* Interactive Fleet Map */}
+      <FleetMap />
 
       {/* Search and Filter Controls */}
       <div className="flex flex-col sm:flex-row gap-4">
